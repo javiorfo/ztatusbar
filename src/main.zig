@@ -3,6 +3,8 @@ const c = @cImport({
     @cInclude("time.h");
 });
 
+const sys = @import("syslinfo");
+
 const Component = struct {
     head: []const u8,
     fun: *const fn ([]const u8) []const u8,
@@ -41,16 +43,24 @@ fn threadBar(components: []Component) void {
     }
 }
 
-var v2: usize = 0;
 fn uno(arg: []const u8) []const u8 {
-    v2 += 1;
-    return std.fmt.allocPrint(std.heap.page_allocator, "{s} {d} | ", .{ arg, v2 }) catch "error";
+    const m = sys.disk.usage("/") catch {
+        return "";
+    };
+    const p = m.percentageUsed() catch 0;
+    return std.fmt.allocPrint(std.heap.page_allocator, "{s} {d}% | ", .{ arg, p }) catch "error";
 }
 
-var v: usize = 0;
 fn dos(arg: []const u8) []const u8 {
-    v += 1;
-    return std.fmt.allocPrint(std.heap.page_allocator, "{s} {d} | ", .{ arg, v }) catch "error";
+    const p = sys.cpu.percentageUsed() catch 0;
+    return std.fmt.allocPrint(std.heap.page_allocator, "{s} {d:.0}% | ", .{ arg, p }) catch "error";
+}
+
+fn cua(arg: []const u8) []const u8 {
+    const p = sys.volume.state(.{}) catch {
+        return "error";
+    };
+    return std.fmt.allocPrint(std.heap.page_allocator, "{s} {d}% | ", .{ arg, p.volume }) catch "error";
 }
 
 fn tres(arg: []const u8) []const u8 {
@@ -65,8 +75,9 @@ fn tres(arg: []const u8) []const u8 {
 
 pub fn main() !void {
     var components = [_]Component{
-        //         .{ .head = "Uno", .fun = uno, .time = 500 },
-        //         .{ .head = "Dos", .fun = dos, .time = 1000 },
+        .{ .head = "DISK", .fun = uno, .time = 2000 },
+        .{ .head = "CPU", .fun = dos, .time = 1000 },
+        .{ .head = "VOL", .fun = cua, .time = 200 },
         .{ .head = "", .fun = tres, .time = 1000 },
     };
 

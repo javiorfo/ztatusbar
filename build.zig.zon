@@ -23,6 +23,11 @@
     // Once all dependencies are fetched, `zig build` no longer requires
     // internet connectivity.
     .dependencies = .{
+        .syslinfo = .{
+            .url = "https://github.com/javiorfo/zig-syslinfo/archive/refs/heads/master.tar.gz",
+            .hash = "12201a1440e899e5e52cdbebab93eb49ed1a629ce38a81337fe3b9ff6343d4780637",
+            //the correct hash will be suggested by zig
+        },
         // See `zig fetch --save <url>` for a command-line interface for adding dependencies.
         //.example = .{
         //    // When updating this field to a new URL, be sure to delete the corresponding
