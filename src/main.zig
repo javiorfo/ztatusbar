@@ -4,6 +4,7 @@ const c = @cImport({
 });
 
 const sys = @import("syslinfo");
+const comps = @import("components.zig");
 
 const Component = struct {
     head: []const u8,
@@ -12,34 +13,41 @@ const Component = struct {
     time: u32,
 };
 
-fn threadComponent(component: *Component) void {
+fn threadComponent(component: *comps.Executor) !void {
     var mutex = std.Thread.Mutex{};
     while (true) {
         mutex.lock();
         defer mutex.unlock();
-
-        component.result = component.fun(component.head);
-        //         if (component.result == null) {
-        //             continue;
-        //         }
-        std.time.sleep(std.time.ns_per_ms * component.time);
+        try component.convert();
+        std.time.sleep(std.time.ns_per_ms * component.time.*);
     }
 }
 
-fn threadBar(components: []Component) void {
+fn threadBar(components: []comps.Executor) void {
     var mutex = std.Thread.Mutex{};
     while (true) {
         mutex.lock();
         defer mutex.unlock();
 
-        var finalStr: []const u8 = "";
+        //         var finalStr: []const u8 = "";
+        //         const allocator = std.heap.page_allocator;
+        //
+        //         for (components) |comp| {
+        //             finalStr = std.fmt.allocPrint(allocator, "{s}{s}", .{ finalStr, comp.result.* }) catch "error";
+        //         }
+        var result = std.ArrayList(u8).init(std.heap.page_allocator);
+        defer result.deinit();
 
         for (components) |comp| {
-            finalStr = std.fmt.allocPrint(std.heap.page_allocator, "{s}{s}", .{ finalStr, comp.result }) catch "error";
+            result.appendSlice(comp.result.*) catch unreachable;
         }
-        //         std.debug.print("{s}\n", .{finalStr});
-        callXsetroot(finalStr) catch return;
 
+        const finalStr = result.toOwnedSlice() catch "error";
+
+        callXsetroot(finalStr) catch return;
+        for (components) |comp| {
+            comp.deinit();
+        }
         std.time.sleep(100 * std.time.ns_per_ms);
     }
 }
@@ -113,13 +121,11 @@ fn date(arg: []const u8) []const u8 {
 }
 
 pub fn main() !void {
-    var components = [_]Component{
-        .{ .head = "  CPU", .fun = cpu, .time = 1000 },
-        .{ .head = "  RAM", .fun = ram, .time = 1000 },
-        .{ .head = "󰏈  TEMP", .fun = temp, .time = 1000 },
-        .{ .head = "󰋊  DISK", .fun = disk, .time = 2000 },
-        .{ .head = "VOL", .fun = volume, .time = 200 },
-        .{ .head = " ", .fun = date, .time = 1000 },
+    var cpuComp = comps.Cpu{};
+    var memComp = comps.Memory{};
+    var volComp = comps.Volume{};
+    var components = [_]comps.Executor{
+        cpuComp.toExecutor(), memComp.toExecutor(), volComp.toExecutor(),
     };
 
     var threads: [components.len]std.Thread = undefined;
