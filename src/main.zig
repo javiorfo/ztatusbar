@@ -5,49 +5,41 @@ const c = @cImport({
 
 const sys = @import("syslinfo");
 const comps = @import("components.zig");
-
-const Component = struct {
-    head: []const u8,
-    fun: *const fn ([]const u8) []const u8,
-    result: []const u8 = "",
-    time: u32,
-};
+var mutex = std.Thread.Mutex{};
+var finalStr: []const u8 = "";
 
 fn threadComponent(component: *comps.Executor) !void {
-    var mutex = std.Thread.Mutex{};
     while (true) {
         mutex.lock();
-        defer mutex.unlock();
         try component.convert();
+        mutex.unlock();
         std.time.sleep(std.time.ns_per_ms * component.time.*);
     }
 }
 
-fn threadBar(components: []comps.Executor) void {
-    var mutex = std.Thread.Mutex{};
+fn threadBar(components: []comps.Executor, alloc: std.heap.ArenaAllocator) void {
     while (true) {
+        _ = alloc;
         mutex.lock();
         defer mutex.unlock();
+        var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+        defer arena.deinit();
 
-        //         var finalStr: []const u8 = "";
-        //         const allocator = std.heap.page_allocator;
-        //
-        //         for (components) |comp| {
-        //             finalStr = std.fmt.allocPrint(allocator, "{s}{s}", .{ finalStr, comp.result.* }) catch "error";
-        //         }
-        var result = std.ArrayList(u8).init(std.heap.page_allocator);
-        defer result.deinit();
-
+        const allocator = arena.allocator();
         for (components) |comp| {
-            result.appendSlice(comp.result.*) catch unreachable;
+            finalStr = std.fmt.allocPrint(allocator, "{s}{s}", .{ finalStr, comp.result.* }) catch "error";
         }
-
-        const finalStr = result.toOwnedSlice() catch "error";
+        //         var result = std.ArrayList(u8).init(arena.allocator());
+        //         defer result.deinit();
+        //         for (components) |comp| {
+        //             result.appendSlice(comp.result.*) catch unreachable;
+        //             result.append('|') catch unreachable;
+        //         }
+        //         _ = result.pop();
+        //         const finalStr = result.toOwnedSlice() catch "error";
 
         callXsetroot(finalStr) catch return;
-        for (components) |comp| {
-            comp.deinit();
-        }
+
         std.time.sleep(100 * std.time.ns_per_ms);
     }
 }
@@ -74,42 +66,6 @@ fn callXsetroot(str: []const u8) !void {
     }
 }
 
-fn disk(arg: []const u8) []const u8 {
-    const m = sys.disk.usage("/") catch {
-        return "";
-    };
-    const p = m.percentageUsed() catch 0;
-    return std.fmt.allocPrint(std.heap.page_allocator, "{s} {d}% | ", .{ arg, p }) catch "error";
-}
-
-fn ram(arg: []const u8) []const u8 {
-    const m = sys.memory.usage() catch {
-        return "";
-    };
-    const p = m.percentageUsed() catch 0;
-    return std.fmt.allocPrint(std.heap.page_allocator, "{s} {d:.0}% | ", .{ arg, p }) catch "error";
-}
-
-fn cpu(arg: []const u8) []const u8 {
-    const p = sys.cpu.percentageUsed() catch 0;
-    return std.fmt.allocPrint(std.heap.page_allocator, "{s} {d:.0}% | ", .{ arg, p }) catch "error";
-}
-
-fn temp(arg: []const u8) []const u8 {
-    const p = sys.thermal.getTemperatureFromZone(sys.thermal.ZONE.two) catch 0;
-    return std.fmt.allocPrint(std.heap.page_allocator, "{s} {d:.0}% | ", .{ arg, p }) catch "error";
-}
-
-fn volume(arg: []const u8) []const u8 {
-    const p = sys.volume.state(.{}) catch {
-        return "error";
-    };
-    if (!p.muted) {
-        return std.fmt.allocPrint(std.heap.page_allocator, "  {s} {d}% | ", .{ arg, p.volume }) catch "error";
-    }
-    return std.fmt.allocPrint(std.heap.page_allocator, "󰖁  {s} MUTED | ", .{arg}) catch "error";
-}
-
 fn date(arg: []const u8) []const u8 {
     const DATE_FORMAT = "%A %d/%m/%Y %H:%M:%S";
     var now: c.time_t = c.time(null);
@@ -121,11 +77,21 @@ fn date(arg: []const u8) []const u8 {
 }
 
 pub fn main() !void {
-    var cpuComp = comps.Cpu{};
-    var memComp = comps.Memory{};
-    var volComp = comps.Volume{};
+    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+    errdefer arena.deinit();
+
+    const alloc = arena.allocator();
+
+    var cpuComp = comps.Cpu{ .allocator = alloc };
+    var tempComp = comps.Temperature{ .allocator = alloc };
+    var memComp = comps.Memory{ .allocator = alloc };
+    var diskComp = comps.Disk{ .allocator = alloc };
+    var volComp = comps.Volume{ .allocator = alloc };
+    var dateComp = comps.Date{ .allocator = alloc };
+
     var components = [_]comps.Executor{
-        cpuComp.toExecutor(), memComp.toExecutor(), volComp.toExecutor(),
+        cpuComp.toExecutor(),  tempComp.toExecutor(), memComp.toExecutor(),
+        diskComp.toExecutor(), volComp.toExecutor(),  dateComp.toExecutor(),
     };
 
     var threads: [components.len]std.Thread = undefined;
@@ -134,7 +100,7 @@ pub fn main() !void {
         threads[i] = try std.Thread.spawn(.{}, threadComponent, .{comp});
     }
 
-    const tbar = try std.Thread.spawn(.{}, threadBar, .{&components});
+    const tbar = try std.Thread.spawn(.{}, threadBar, .{ &components, arena });
     for (threads) |thread| {
         thread.join();
     }
