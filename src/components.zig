@@ -8,7 +8,8 @@ pub const Cpu = struct {
     name: []const u8 = "CPU",
     icon: []const u8 = " ",
     time: usize = 1000,
-    allocator: std.mem.Allocator,
+    allocator: std.mem.Allocator = std.heap.page_allocator,
+    mutex: std.Thread.Mutex = .{},
     result: []const u8 = "",
 
     pub fn convert(ptr: *anyopaque) anyerror!void {
@@ -29,6 +30,7 @@ pub const Cpu = struct {
             .deinitFn = Cpu.deinit,
             .time = &self.time,
             .allocator = &self.allocator,
+            .mutex = &self.mutex,
             .result = &self.result,
         };
     }
@@ -38,13 +40,13 @@ pub const Date = struct {
     format: [*c]const u8 = "%A %d/%m/%Y %H:%M:%S",
     icon: []const u8 = " ",
     time: usize = 1000,
-    allocator: std.mem.Allocator,
+    allocator: std.mem.Allocator = std.heap.page_allocator,
+    mutex: std.Thread.Mutex = .{},
     result: []const u8 = "",
 
     pub fn convert(ptr: *anyopaque) anyerror!void {
         const self: *Date = @ptrCast(@alignCast(ptr));
 
-        //         const DATE_FORMAT = "%A %d/%m/%Y %H:%M:%S";
         var now: c.time_t = c.time(null);
         const local: *c.struct_tm = c.localtime(&now);
         var buffer: [80]u8 = undefined;
@@ -65,17 +67,19 @@ pub const Date = struct {
             .deinitFn = Date.deinit,
             .time = &self.time,
             .allocator = &self.allocator,
+            .mutex = &self.mutex,
             .result = &self.result,
         };
     }
 };
 
 pub const Temperature = struct {
-    name: []const u8 = "TMP",
+    name: []const u8 = "TEMP",
     icon: []const u8 = "󰏈 ",
     thermal_zone: sys.thermal.ZONE = .two,
     time: usize = 1000,
-    allocator: std.mem.Allocator,
+    allocator: std.mem.Allocator = std.heap.page_allocator,
+    mutex: std.Thread.Mutex = .{},
     result: []const u8 = "",
 
     pub fn convert(ptr: *anyopaque) anyerror!void {
@@ -96,6 +100,7 @@ pub const Temperature = struct {
             .deinitFn = Temperature.deinit,
             .time = &self.time,
             .allocator = &self.allocator,
+            .mutex = &self.mutex,
             .result = &self.result,
         };
     }
@@ -106,7 +111,8 @@ pub const Disk = struct {
     icon: []const u8 = "󰋊 ",
     unit: [:0]const u8 = "/",
     time: usize = 1000,
-    allocator: std.mem.Allocator,
+    allocator: std.mem.Allocator = std.heap.page_allocator,
+    mutex: std.Thread.Mutex = .{},
     result: []const u8 = "",
 
     pub fn convert(ptr: *anyopaque) anyerror!void {
@@ -128,6 +134,7 @@ pub const Disk = struct {
             .deinitFn = Disk.deinit,
             .time = &self.time,
             .allocator = &self.allocator,
+            .mutex = &self.mutex,
             .result = &self.result,
         };
     }
@@ -138,7 +145,8 @@ pub const Volume = struct {
     icon: []const u8 = " ",
     icon_muted: []const u8 = "󰖁 ",
     time: usize = 200,
-    allocator: std.mem.Allocator,
+    allocator: std.mem.Allocator = std.heap.page_allocator,
+    mutex: std.Thread.Mutex = .{},
     result: []const u8 = "",
 
     pub fn convert(ptr: *anyopaque) anyerror!void {
@@ -163,6 +171,7 @@ pub const Volume = struct {
             .deinitFn = Volume.deinit,
             .time = &self.time,
             .allocator = &self.allocator,
+            .mutex = &self.mutex,
             .result = &self.result,
         };
     }
@@ -172,7 +181,8 @@ pub const Memory = struct {
     name: []const u8 = "RAM",
     icon: []const u8 = " ",
     time: usize = 1000,
-    allocator: std.mem.Allocator,
+    allocator: std.mem.Allocator = std.heap.page_allocator,
+    mutex: std.Thread.Mutex = .{},
     result: []const u8 = "",
 
     pub fn convert(ptr: *anyopaque) anyerror!void {
@@ -194,6 +204,7 @@ pub const Memory = struct {
             .deinitFn = Memory.deinit,
             .time = &self.time,
             .allocator = &self.allocator,
+            .mutex = &self.mutex,
             .result = &self.result,
         };
     }
@@ -205,6 +216,7 @@ pub const Executor = struct {
     deinitFn: *const fn (*anyopaque) void,
     time: *usize,
     allocator: *std.mem.Allocator,
+    mutex: *std.Thread.Mutex,
     result: *[]const u8,
 
     pub fn convert(self: Executor) anyerror!void {

@@ -5,42 +5,38 @@ const c = @cImport({
 
 const sys = @import("syslinfo");
 const comps = @import("components.zig");
-var mutex = std.Thread.Mutex{};
-var finalStr: []const u8 = "";
 
 fn threadComponent(component: *comps.Executor) !void {
     while (true) {
-        mutex.lock();
+        component.mutex.lock();
+        defer component.mutex.unlock();
         try component.convert();
-        mutex.unlock();
         std.time.sleep(std.time.ns_per_ms * component.time.*);
     }
 }
 
-fn threadBar(components: []comps.Executor, alloc: std.heap.ArenaAllocator) void {
+fn threadBar(components: []comps.Executor, arena_comp: std.heap.ArenaAllocator) void {
+    var mutex = std.Thread.Mutex{};
     while (true) {
-        _ = alloc;
         mutex.lock();
         defer mutex.unlock();
         var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
         defer arena.deinit();
 
-        const allocator = arena.allocator();
+        var final_str: []const u8 = "";
+        var result = std.ArrayList(u8).init(arena.allocator());
+        defer result.deinit();
         for (components) |comp| {
-            finalStr = std.fmt.allocPrint(allocator, "{s}{s}", .{ finalStr, comp.result.* }) catch "error";
+            result.appendSlice(comp.result.*) catch unreachable;
+            result.append('|') catch unreachable;
         }
-        //         var result = std.ArrayList(u8).init(arena.allocator());
-        //         defer result.deinit();
-        //         for (components) |comp| {
-        //             result.appendSlice(comp.result.*) catch unreachable;
-        //             result.append('|') catch unreachable;
-        //         }
-        //         _ = result.pop();
-        //         const finalStr = result.toOwnedSlice() catch "error";
+        if (result.items.len != 0) _ = result.pop();
+        final_str = result.toOwnedSlice() catch "error getting string";
 
-        callXsetroot(finalStr) catch return;
+        callXsetroot(final_str) catch return;
 
         std.time.sleep(100 * std.time.ns_per_ms);
+        arena_comp.deinit();
     }
 }
 
@@ -78,16 +74,13 @@ fn date(arg: []const u8) []const u8 {
 
 pub fn main() !void {
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
-    errdefer arena.deinit();
 
-    const alloc = arena.allocator();
-
-    var cpuComp = comps.Cpu{ .allocator = alloc };
-    var tempComp = comps.Temperature{ .allocator = alloc };
-    var memComp = comps.Memory{ .allocator = alloc };
-    var diskComp = comps.Disk{ .allocator = alloc };
-    var volComp = comps.Volume{ .allocator = alloc };
-    var dateComp = comps.Date{ .allocator = alloc };
+    var cpuComp = comps.Cpu{ .allocator = arena.allocator() };
+    var tempComp = comps.Temperature{ .allocator = arena.allocator() };
+    var memComp = comps.Memory{ .allocator = arena.allocator() };
+    var diskComp = comps.Disk{ .allocator = arena.allocator() };
+    var volComp = comps.Volume{ .allocator = arena.allocator() };
+    var dateComp = comps.Date{ .allocator = arena.allocator() };
 
     var components = [_]comps.Executor{
         cpuComp.toExecutor(),  tempComp.toExecutor(), memComp.toExecutor(),
