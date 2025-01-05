@@ -8,35 +8,47 @@ const comps = @import("components.zig");
 
 fn threadComponent(component: *comps.Executor) !void {
     while (true) {
-        component.mutex.lock();
-        defer component.mutex.unlock();
         try component.convert();
-        std.time.sleep(std.time.ns_per_ms * component.time.*);
+        component.deinit();
     }
 }
 
-fn threadBar(components: []comps.Executor, arena_comp: std.heap.ArenaAllocator) void {
-    var mutex = std.Thread.Mutex{};
+fn threadBar(components: []comps.Executor) !void {
     while (true) {
-        mutex.lock();
-        defer mutex.unlock();
         var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
         defer arena.deinit();
 
         var final_str: []const u8 = "";
         var result = std.ArrayList(u8).init(arena.allocator());
         defer result.deinit();
-        for (components) |comp| {
+        const length = components.len;
+        for (components, 0..) |comp, i| {
+            comp.mutex.lock();
+            defer comp.mutex.unlock();
             result.appendSlice(comp.result.*) catch unreachable;
-            result.append('|') catch unreachable;
-        }
-        if (result.items.len != 0) _ = result.pop();
-        final_str = result.toOwnedSlice() catch "error getting string";
 
-        callXsetroot(final_str) catch return;
+            if (i == length - 1) {
+                final_str = result.toOwnedSlice() catch |err| {
+                    std.log.err("Error creating final string {}\n", .{err});
+                    return error.FinalStringCreationFailed;
+                };
+            } else {
+                result.append('|') catch unreachable;
+            }
+        }
+        //         if (result.items.len != 0) _ = result.pop();
+        //         final_str = result.toOwnedSlice() catch |err| {
+        //             std.log.err("Error creating final string {}\n", .{err});
+        //             return error.FinalStringCreationFailed;
+        //         };
+
+        //         for (components) |comp| comp.mutex.unlock();
+
+        callXsetroot(final_str) catch |err| {
+            std.log.err("Error calling system xsetroot {}\n", .{err});
+        };
 
         std.time.sleep(100 * std.time.ns_per_ms);
-        arena_comp.deinit();
     }
 }
 
@@ -62,25 +74,17 @@ fn callXsetroot(str: []const u8) !void {
     }
 }
 
-fn date(arg: []const u8) []const u8 {
-    const DATE_FORMAT = "%A %d/%m/%Y %H:%M:%S";
-    var now: c.time_t = c.time(null);
-    const local: *c.struct_tm = c.localtime(&now);
-
-    var buffer: [80]u8 = undefined;
-    const len = c.strftime(&buffer, 80, DATE_FORMAT, local);
-    return std.fmt.allocPrint(std.heap.page_allocator, "{s} {s} ", .{ arg, buffer[0..len] }) catch "error";
-}
-
 pub fn main() !void {
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+    defer arena.deinit();
+    const alloc = arena.allocator();
 
-    var cpuComp = comps.Cpu{ .allocator = arena.allocator() };
-    var tempComp = comps.Temperature{ .allocator = arena.allocator() };
-    var memComp = comps.Memory{ .allocator = arena.allocator() };
-    var diskComp = comps.Disk{ .allocator = arena.allocator() };
-    var volComp = comps.Volume{ .allocator = arena.allocator() };
-    var dateComp = comps.Date{ .allocator = arena.allocator() };
+    var cpuComp = comps.Cpu{ .allocator = alloc };
+    var tempComp = comps.Temperature{ .allocator = alloc };
+    var memComp = comps.Memory{ .allocator = alloc };
+    var diskComp = comps.Disk{ .allocator = alloc };
+    var volComp = comps.Volume{ .allocator = alloc };
+    var dateComp = comps.Date{ .allocator = alloc };
 
     var components = [_]comps.Executor{
         cpuComp.toExecutor(),  tempComp.toExecutor(), memComp.toExecutor(),
@@ -93,7 +97,7 @@ pub fn main() !void {
         threads[i] = try std.Thread.spawn(.{}, threadComponent, .{comp});
     }
 
-    const tbar = try std.Thread.spawn(.{}, threadBar, .{ &components, arena });
+    const tbar = try std.Thread.spawn(.{}, threadBar, .{&components});
     for (threads) |thread| {
         thread.join();
     }

@@ -3,6 +3,7 @@ const sys = @import("syslinfo");
 const c = @cImport({
     @cInclude("time.h");
 });
+const testing = std.testing;
 
 pub const Cpu = struct {
     name: []const u8 = "CPU",
@@ -14,13 +15,28 @@ pub const Cpu = struct {
 
     pub fn convert(ptr: *anyopaque) anyerror!void {
         const self: *Cpu = @ptrCast(@alignCast(ptr));
+        self.mutex.lock();
+        errdefer {
+            self.mutex.unlock();
+            std.log.err("Error running convert in Cpu", .{});
+        }
+        //         if (self.result.len > 0) {
+        //             self.allocator.free(self.result);
+        //         }
+
         const p = sys.cpu.percentageUsed() catch 0;
         self.result = try std.fmt.allocPrint(self.allocator, " {s} {s} {d:.0}% ", .{ self.icon, self.name, p });
+        self.mutex.unlock();
+        std.time.sleep(std.time.ns_per_ms * self.time);
     }
 
     pub fn deinit(ptr: *anyopaque) void {
         const self: *Cpu = @ptrCast(@alignCast(ptr));
-        self.allocator.free(self.result);
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        if (self.result.len > 0) {
+            self.allocator.free(self.result);
+        }
     }
 
     pub fn toExecutor(self: *Cpu) Executor {
@@ -36,6 +52,14 @@ pub const Cpu = struct {
     }
 };
 
+test "cpu" {
+    var cpu_test = Cpu{ .allocator = testing.allocator };
+    const e = cpu_test.toExecutor();
+    defer e.deinit();
+    try e.convert();
+    try testing.expect(cpu_test.result.len > 0);
+}
+
 pub const Date = struct {
     format: [*c]const u8 = "%A %d/%m/%Y %H:%M:%S",
     icon: []const u8 = " ",
@@ -46,18 +70,32 @@ pub const Date = struct {
 
     pub fn convert(ptr: *anyopaque) anyerror!void {
         const self: *Date = @ptrCast(@alignCast(ptr));
-
+        self.mutex.lock();
+        errdefer {
+            self.mutex.unlock();
+            std.log.err("Error running convert in Date", .{});
+        }
+        //         if (self.result.len > 0) {
+        //             self.allocator.free(self.result);
+        //         }
         var now: c.time_t = c.time(null);
         const local: *c.struct_tm = c.localtime(&now);
         var buffer: [80]u8 = undefined;
         const len = c.strftime(&buffer, 80, self.format, local);
 
         self.result = try std.fmt.allocPrint(self.allocator, " {s} {s} ", .{ self.icon, buffer[0..len] });
+
+        self.mutex.unlock();
+        std.time.sleep(std.time.ns_per_ms * self.time);
     }
 
     pub fn deinit(ptr: *anyopaque) void {
         const self: *Date = @ptrCast(@alignCast(ptr));
-        self.allocator.free(self.result);
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        if (self.result.len > 0) {
+            self.allocator.free(self.result);
+        }
     }
 
     pub fn toExecutor(self: *Date) Executor {
@@ -84,13 +122,27 @@ pub const Temperature = struct {
 
     pub fn convert(ptr: *anyopaque) anyerror!void {
         const self: *Temperature = @ptrCast(@alignCast(ptr));
+        self.mutex.lock();
+        errdefer {
+            self.mutex.unlock();
+            std.log.err("Error running convert in Temperature", .{});
+        }
+        //         if (self.result.len > 0) {
+        //             self.allocator.free(self.result);
+        //         }
         const p = sys.thermal.getTemperatureFromZone(self.thermal_zone) catch 0;
-        self.result = try std.fmt.allocPrint(self.allocator, " {s} {s} {d:.0}° ", .{ self.icon, self.name, p });
+        self.result = try std.fmt.allocPrint(self.allocator, " {s} {s} {d:.0}°C ", .{ self.icon, self.name, p });
+        self.mutex.unlock();
+        std.time.sleep(std.time.ns_per_ms * self.time);
     }
 
     pub fn deinit(ptr: *anyopaque) void {
         const self: *Temperature = @ptrCast(@alignCast(ptr));
-        self.allocator.free(self.result);
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        if (self.result.len > 0) {
+            self.allocator.free(self.result);
+        }
     }
 
     pub fn toExecutor(self: *Temperature) Executor {
@@ -117,14 +169,28 @@ pub const Disk = struct {
 
     pub fn convert(ptr: *anyopaque) anyerror!void {
         const self: *Disk = @ptrCast(@alignCast(ptr));
+        self.mutex.lock();
+        errdefer {
+            self.mutex.unlock();
+            std.log.err("Error running convert in Disk", .{});
+        }
+        //         if (self.result.len > 0) {
+        //             self.allocator.free(self.result);
+        //         }
         const m = try sys.disk.usage(self.unit);
         const p = m.percentageUsed() catch 0;
         self.result = try std.fmt.allocPrint(self.allocator, " {s} {s} {d:.0}% ", .{ self.icon, self.name, p });
+        self.mutex.unlock();
+        std.time.sleep(std.time.ns_per_ms * self.time);
     }
 
     pub fn deinit(ptr: *anyopaque) void {
         const self: *Disk = @ptrCast(@alignCast(ptr));
-        self.allocator.free(self.result);
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        if (self.result.len > 0) {
+            self.allocator.free(self.result);
+        }
     }
 
     pub fn toExecutor(self: *Disk) Executor {
@@ -151,17 +217,32 @@ pub const Volume = struct {
 
     pub fn convert(ptr: *anyopaque) anyerror!void {
         const self: *Volume = @ptrCast(@alignCast(ptr));
+        self.mutex.lock();
+        errdefer self.mutex.unlock();
+        errdefer {
+            self.mutex.unlock();
+            std.log.err("Error running convert in Volume", .{});
+        }
+        //         if (self.result.len > 0) {
+        //             self.allocator.free(self.result);
+        //         }
         const p = try sys.volume.state(.{});
         if (!p.muted) {
             self.result = try std.fmt.allocPrint(self.allocator, " {s} {s} {d}% ", .{ self.icon, self.name, p.volume });
         } else {
             self.result = try std.fmt.allocPrint(self.allocator, " {s} MUTED ", .{self.icon_muted});
         }
+        self.mutex.unlock();
+        std.time.sleep(std.time.ns_per_ms * self.time);
     }
 
     pub fn deinit(ptr: *anyopaque) void {
         const self: *Volume = @ptrCast(@alignCast(ptr));
-        self.allocator.free(self.result);
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        if (self.result.len > 0) {
+            self.allocator.free(self.result);
+        }
     }
 
     pub fn toExecutor(self: *Volume) Executor {
@@ -187,14 +268,28 @@ pub const Memory = struct {
 
     pub fn convert(ptr: *anyopaque) anyerror!void {
         const self: *Memory = @ptrCast(@alignCast(ptr));
+        self.mutex.lock();
+        errdefer {
+            self.mutex.unlock();
+            std.log.err("Error running convert in Memory", .{});
+        }
+        //         if (self.result.len > 0) {
+        //             self.allocator.free(self.result);
+        //         }
         const m = try sys.memory.usage();
         const p = m.percentageUsed() catch 0;
         self.result = try std.fmt.allocPrint(self.allocator, " {s} {s} {d:.0}% ", .{ self.icon, self.name, p });
+        self.mutex.unlock();
+        std.time.sleep(std.time.ns_per_ms * self.time);
     }
 
     pub fn deinit(ptr: *anyopaque) void {
         const self: *Cpu = @ptrCast(@alignCast(ptr));
-        self.allocator.free(self.result);
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        if (self.result.len > 0) {
+            self.allocator.free(self.result);
+        }
     }
 
     pub fn toExecutor(self: *Memory) Executor {
