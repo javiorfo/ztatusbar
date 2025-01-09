@@ -19,7 +19,7 @@ yay -S ztatusbar
 ```
 
 ## Setup
-- In your **~/.xinitrc** to start in every login
+- In your **~/.xinitrc** or **~/.xprofile** to start in every login
 ```bash
 ztatusbar 2> ztatusbar.log &
 ```
@@ -42,7 +42,7 @@ ztatusbar 2> ztatusbar.log &
 ## Customizable
 - By default the statusbar contains: **cpu usage, memory usage, temperature, disk usage, volume and datetime**
 - For a custom configuration put this file [config.toml](https://github.com/javiorfo/ztatusbar/blob/master/config/config.toml) in your `~/.config/ztatusbar/config.toml` and edit it to change values or delete a component.
-- Memory component example in config.toml:
+- Some configuration example in config.toml:
 ```toml
 [memory]
 time = 1000  # Time in miliseconds defines how often the process runs

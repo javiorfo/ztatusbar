@@ -43,9 +43,9 @@ icon_low = "󰁺"
 path = "/sys/class/power_supply/BAT0/capacity"
 
 [script]
-time = 1000;
-name = "SCR"; # Use a suitable name
-icon = "󰯁 ";  # Use a suitable icon
+time = 1000
+name = "SCR" # Use a suitable nam
+icon = "󰯁 "  # Use a suitable icon
 path = "/path/to/script.sh"
 
 [weather]
