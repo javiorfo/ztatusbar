@@ -5,6 +5,8 @@ const tomlz = @import("tomlz");
 
 const config_file = ".config/ztatusbar/config.toml";
 
+pub var separator: u8 = '|';
+
 pub fn initialize() !void {
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     defer arena.deinit();
@@ -34,6 +36,13 @@ pub fn initialize() !void {
 
         var table = try tomlz.parse(allocator, buffer);
         toml = table;
+
+        if (table.getTable("general")) |item| {
+            if (item.getString("separator")) |sep| {
+                if (sep.len > 1 or sep.len == 0) return error.SeparatorMustBeSingleChar;
+                separator = sep[0];
+            }
+        }
 
         if (table.getTable("cpu")) |item| {
             var cpu = device.Cpu{
@@ -92,6 +101,18 @@ pub fn initialize() !void {
             try devices_list.append(net.toDevice());
             size += 1;
         }
+        if (table.getTable("battery")) |item| {
+            var bat = device.Battery{
+                .icon_full = item.getString("icon_full") orelse "󰁹",
+                .icon_half = item.getString("icon_half") orelse "󰁿",
+                .icon_low = item.getString("icon_low") orelse "󰁺",
+                .name = item.getString("name") orelse "BAT",
+                .path = item.getString("path") orelse return error.PowerSupplyFileMissing,
+                .time = @as(u64, @intCast(item.getInteger("time") orelse 10000)),
+            };
+            try devices_list.append(bat.toDevice());
+            size += 1;
+        }
         if (table.getTable("weather")) |item| {
             var wea = device.Weather{
                 .icon = item.getString("icon") orelse " ",
@@ -100,6 +121,16 @@ pub fn initialize() !void {
                 .time = @as(u64, @intCast(item.getInteger("time") orelse 1800000)),
             };
             try devices_list.append(wea.toDevice());
+            size += 1;
+        }
+        if (table.getTable("script")) |item| {
+            var script = device.Script{
+                .icon = item.getString("icon") orelse return error.ScriptIconRequired,
+                .name = item.getString("name") orelse return error.ScriptNameRequired,
+                .path = item.getString("path") orelse return error.ScriptPathRequired,
+                .time = @as(u64, @intCast(item.getInteger("time") orelse 1000)),
+            };
+            try devices_list.append(script.toDevice());
             size += 1;
         }
         if (table.getTable("date")) |item| {

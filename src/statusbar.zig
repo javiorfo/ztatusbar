@@ -1,5 +1,6 @@
 const std = @import("std");
 const device = @import("device.zig");
+const initializer = @import("initializer.zig");
 
 pub fn threadDevice(dev: *device.Device) !void {
     while (true) {
@@ -33,7 +34,7 @@ pub fn threadStatusBar(devices: *[]device.Device) !void {
                     return error.FinalStringCreationFailed;
                 };
             } else {
-                result.append('|') catch unreachable;
+                result.append(initializer.separator) catch unreachable;
             }
         }
 
@@ -56,8 +57,7 @@ pub fn callXsetroot(str: []const u8) !void {
     child.stdout_behavior = .Ignore;
     child.stderr_behavior = .Inherit;
 
-    try child.spawn();
-    const term = try child.wait();
+    const term = try child.spawnAndWait();
 
     switch (term) {
         .Stopped, .Signal, .Unknown => |err| std.log.err("Command failed: {}\n", .{err}),

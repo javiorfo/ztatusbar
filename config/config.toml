@@ -1,0 +1,60 @@
+[general]
+separator = "|"
+
+[cpu]
+time = 1000
+name = "CPU"
+icon = " "
+
+[memory]
+time = 1000
+name = "RAM"
+icon = " "
+
+[temperature]
+time = 1000
+name = "TEMP"
+icon = "󰏈 " 
+
+[disk]
+time = 2000
+name = "DISK"
+icon = "󰋊 "
+unit = "/"
+
+[volume]
+time = 100
+name = "VOL"
+icon = " " 
+icon_muted = "󰖁 " 
+
+[network]
+time = 5000
+name = "NET"
+icon = "󰀂 " 
+icon_down = "󰯡 " 
+
+[battery]
+time = 5000
+name = "BAT"
+icon_full = "󰁹" 
+icon_medium = "󰁿" 
+icon_low = "󰁺" 
+path = "/sys/class/power_supply/BAT0/capacity"
+
+[script]
+time = 1000;
+name = "SCR"; # Use a suitable name
+icon = "󰯁 ";  # Use a suitable icon
+path = "/path/to/script.sh"
+
+[weather]
+time = 1800000
+name = "WEA"
+icon = " "
+location = "Buenos+Aires"
+
+[date]
+time = 1000
+format = "%A %d/%m/%Y %H:%M"
+icon = " "
