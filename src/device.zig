@@ -1,5 +1,6 @@
 const std = @import("std");
 const sys = @import("syslinfo");
+const curl = @import("curl");
 const c = @cImport({
     @cInclude("time.h");
 });
@@ -190,7 +191,7 @@ pub const Volume = struct {
             };
         } else {
             self.section = .{
-                .icon = self.icon,
+                .icon = self.icon_muted,
                 .name = "",
                 .refreshed_value = .{ .str = "MUTED" },
             };
@@ -204,6 +205,104 @@ pub const Volume = struct {
         return .{
             .ptr = self,
             .refreshFn = Volume.refresh,
+            .time = &self.time,
+            .mutex = &self.mutex,
+            .section = &self.section,
+        };
+    }
+};
+
+pub const Network = struct {
+    name: []const u8 = "NET",
+    icon: []const u8 = "󰀂 ",
+    icon_down: []const u8 = "󰯡 ",
+    time: usize = 5000,
+    mutex: std.Thread.Mutex = .{},
+    section: ?sec.Section = null,
+
+    pub fn refresh(ptr: *anyopaque) anyerror!void {
+        const self: *Network = @ptrCast(@alignCast(ptr));
+        self.mutex.lock();
+        errdefer {
+            self.mutex.unlock();
+            std.log.err("Error running convert in Network", .{});
+        }
+
+        var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+        defer _ = gpa.deinit();
+        const allocator = gpa.allocator();
+
+        if (std.net.tcpConnectToHost(allocator, "google.com", 443)) |_| {
+            self.section = .{
+                .icon = self.icon,
+                .name = "",
+                .refreshed_value = .{ .str = self.name },
+            };
+        } else |_| {
+            self.section = .{
+                .icon = self.icon_down,
+                .name = "",
+                .refreshed_value = .{ .str = self.name },
+            };
+        }
+
+        self.mutex.unlock();
+        std.time.sleep(std.time.ns_per_ms * self.time);
+    }
+
+    pub fn toDevice(self: *Network) Device {
+        return .{
+            .ptr = self,
+            .refreshFn = Network.refresh,
+            .time = &self.time,
+            .mutex = &self.mutex,
+            .section = &self.section,
+        };
+    }
+};
+
+pub const Weather = struct {
+    name: []const u8 = "WEA",
+    icon: []const u8 = " ",
+    location: []const u8 = "Buenos+Aires",
+    time: usize = 1800000,
+    mutex: std.Thread.Mutex = .{},
+    section: ?sec.Section = null,
+
+    pub fn refresh(ptr: *anyopaque) anyerror!void {
+        const self: *Weather = @ptrCast(@alignCast(ptr));
+        self.mutex.lock();
+        errdefer {
+            self.mutex.unlock();
+            std.log.err("Error running convert in Weather", .{});
+        }
+
+        var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+        defer if (gpa.deinit() != .ok) @panic("leak curl");
+        const allocator = gpa.allocator();
+
+        const easy = try curl.Easy.init(allocator, .{});
+        defer easy.deinit();
+
+        const resp = try easy.get(try std.fmt.allocPrintZ(allocator, "wttr.in/{s}?format=%t", .{self.location}));
+        defer resp.deinit();
+
+        const value = if (resp.status_code == 200) resp.body.?.items[1..resp.body.?.items.len] else "-";
+
+        self.section = .{
+            .icon = self.icon,
+            .name = self.name,
+            .refreshed_value = .{ .str = value },
+        };
+
+        self.mutex.unlock();
+        std.time.sleep(std.time.ns_per_ms * self.time);
+    }
+
+    pub fn toDevice(self: *Weather) Device {
+        return .{
+            .ptr = self,
+            .refreshFn = Weather.refresh,
             .time = &self.time,
             .mutex = &self.mutex,
             .section = &self.section,

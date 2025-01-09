@@ -20,6 +20,7 @@ pub fn initialize() !void {
     var devices_list = std.ArrayList(device.Device).init(allocator);
     defer devices_list.deinit();
     var toml: ?tomlz.parser.Table = null;
+    var size: usize = 0;
 
     if (std.fs.openFileAbsolute(path, .{})) |file| {
         defer file.close();
@@ -41,6 +42,7 @@ pub fn initialize() !void {
                 .time = @as(u64, @intCast(item.getInteger("time") orelse 1000)),
             };
             try devices_list.append(cpu.toDevice());
+            size += 1;
         }
         if (table.getTable("temperature")) |item| {
             var temp = device.Temperature{
@@ -49,6 +51,7 @@ pub fn initialize() !void {
                 .time = @as(u64, @intCast(item.getInteger("time") orelse 1000)),
             };
             try devices_list.append(temp.toDevice());
+            size += 1;
         }
         if (table.getTable("memory")) |item| {
             var mem = device.Memory{
@@ -57,6 +60,7 @@ pub fn initialize() !void {
                 .time = @as(u64, @intCast(item.getInteger("time") orelse 1000)),
             };
             try devices_list.append(mem.toDevice());
+            size += 1;
         }
         if (table.getTable("disk")) |item| {
             var disk = device.Disk{
@@ -66,15 +70,37 @@ pub fn initialize() !void {
                 .time = @as(u64, @intCast(item.getInteger("time") orelse 2000)),
             };
             try devices_list.append(disk.toDevice());
+            size += 1;
         }
         if (table.getTable("volume")) |item| {
             var vol = device.Volume{
                 .icon = item.getString("icon") orelse " ",
-                .icon_muted = item.getString("icon") orelse "󰖁 ",
+                .icon_muted = item.getString("icon_muted") orelse "󰖁 ",
                 .name = item.getString("name") orelse "VOL",
                 .time = @as(u64, @intCast(item.getInteger("time") orelse 100)),
             };
             try devices_list.append(vol.toDevice());
+            size += 1;
+        }
+        if (table.getTable("network")) |item| {
+            var net = device.Network{
+                .icon = item.getString("icon") orelse "󰀂 ",
+                .icon_down = item.getString("icon_down") orelse "󰯡 ",
+                .name = item.getString("name") orelse "NET",
+                .time = @as(u64, @intCast(item.getInteger("time") orelse 5000)),
+            };
+            try devices_list.append(net.toDevice());
+            size += 1;
+        }
+        if (table.getTable("weather")) |item| {
+            var wea = device.Weather{
+                .icon = item.getString("icon") orelse " ",
+                .location = item.getString("location") orelse "Buenos+Aires",
+                .name = item.getString("name") orelse "WEA",
+                .time = @as(u64, @intCast(item.getInteger("time") orelse 1800000)),
+            };
+            try devices_list.append(wea.toDevice());
+            size += 1;
         }
         if (table.getTable("date")) |item| {
             var date = device.Date{
@@ -83,6 +109,7 @@ pub fn initialize() !void {
                 .time = @as(u64, @intCast(item.getInteger("time") orelse 1000)),
             };
             try devices_list.append(date.toDevice());
+            size += 1;
         }
     } else |_| {
         var cpu = device.Cpu{};
@@ -98,9 +125,10 @@ pub fn initialize() !void {
         try devices_list.append(disk.toDevice());
         try devices_list.append(vol.toDevice());
         try devices_list.append(date.toDevice());
+        size = 6;
     }
 
-    try execute(&devices_list, 6);
+    try execute(&devices_list, size);
 
     if (toml != null) toml.?.deinit(allocator);
 
