@@ -11,6 +11,7 @@
 git clone https://github.com/javiorfo/ztatusbar
 cd ztatusbar
 sudo make clean install
+```
 
 - From AUR Arch Linux:
 ```bash
@@ -47,6 +48,20 @@ ztatusbar 2> ztatusbar.log &
 time = 1000  # Time in miliseconds defines how often the process runs
 name = "RAM" # Name of the component. Could be empty => name = ""
 icon = ""   # Icon of the component. Could be empty => icon = ""
+
+[disk]
+time = 2000
+name = "DISK"
+icon = "󰋊 "
+unit = "/"
+
+[volume]
+time = 100
+name = "VOL"
+icon = " " 
+icon_muted = "󰖁 "
+
+...
 ```
 
 ## Screenshots
