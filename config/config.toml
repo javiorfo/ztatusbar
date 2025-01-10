@@ -15,6 +15,7 @@ icon = " "
 time = 1000
 name = "TEMP"
 icon = "󰏈 " 
+zone = 1
 
 [disk]
 time = 2000

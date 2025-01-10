@@ -94,7 +94,7 @@ pub const Date = struct {
 pub const Temperature = struct {
     name: []const u8 = "TEMP",
     icon: []const u8 = "󰏈 ",
-    thermal_zone: sys.thermal.ZONE = .two,
+    thermal_zone: sys.thermal.ZONE = .zero,
     time: usize = 1000,
     mutex: std.Thread.Mutex = .{},
     section: ?sec.Section = null,
@@ -185,7 +185,7 @@ pub const Disk = struct {
         self.section = .{
             .icon = self.icon,
             .name = self.name,
-            .refreshed_value = .{ .perc = @as(f32, @floatFromInt(try disk_usage.percentageUsed())) },
+            .refreshed_value = .{ .perc = try disk_usage.percentageUsed() },
         };
 
         self.mutex.unlock();

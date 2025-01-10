@@ -2,6 +2,7 @@ const std = @import("std");
 const device = @import("device.zig");
 const statusbar = @import("statusbar.zig");
 const tomlz = @import("tomlz");
+const sys = @import("syslinfo");
 
 const config_file = ".config/ztatusbar/config.toml";
 
@@ -58,6 +59,7 @@ pub fn initialize() !void {
                 .icon = item.getString("icon") orelse "󰏈 ",
                 .name = item.getString("name") orelse "TEMP",
                 .time = @as(u64, @intCast(item.getInteger("time") orelse 1000)),
+                .thermal_zone = sys.thermal.ZONE.getEnum(@as(u4, @intCast(item.getInteger("zone") orelse 0))),
             };
             try devices_list.append(temp.toDevice());
             size += 1;
