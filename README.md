@@ -65,7 +65,7 @@ icon_muted = "󰖁 "
 time = 1000
 name = "TEMP"
 icon = "󰏈 " 
-zone = 1    # thermal zone which has the temperature in /sys/class/thermal_zone{variable here}. If not set it uses thermal_zone0
+zone = 1    # thermal zone which has the temperature in /sys/class/thermal_zone{variable here}/temp. If not set it uses thermal_zone0/temp
 
 ...
 ```

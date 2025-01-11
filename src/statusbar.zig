@@ -8,6 +8,17 @@ pub fn threadDevice(dev: *device.Device) !void {
     }
 }
 
+pub fn threadDevices(devices: []device.Device, time: u64) !void {
+    while (true) {
+        for (devices) |dev| {
+            dev.mutex.lock();
+            defer dev.mutex.unlock();
+            dev.refresh() catch continue;
+        }
+        std.time.sleep(std.time.ns_per_ms * time);
+    }
+}
+
 pub fn threadStatusBar(devices: *[]device.Device) !void {
     while (true) {
         var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
@@ -19,11 +30,11 @@ pub fn threadStatusBar(devices: *[]device.Device) !void {
         defer result.deinit();
         const length = devices.len;
 
-        for (devices.*, 0..) |d, i| {
-            d.mutex.lock();
-            defer d.mutex.unlock();
+        for (devices.*, 0..) |dev, i| {
+            dev.mutex.lock();
+            defer dev.mutex.unlock();
 
-            const section = d.section.* orelse continue;
+            const section = dev.section.* orelse continue;
             const formatted = section.format(allocator);
             defer allocator.free(formatted);
             result.appendSlice(formatted) catch unreachable;

@@ -19,10 +19,6 @@ pub fn build(b: *std.Build) void {
     exe.root_module.addImport("syslinfo", dep.module("syslinfo"));
     exe.linkSystemLibrary("asound");
 
-    // CURL
-    const dep_curl = b.dependency("curl", .{});
-    exe.root_module.addImport("curl", dep_curl.module("curl"));
-
     // TOMLZ
     const tomlz = b.dependency("tomlz", .{
         .target = target,

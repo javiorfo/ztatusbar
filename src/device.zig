@@ -1,6 +1,5 @@
 const std = @import("std");
 const sys = @import("syslinfo");
-const curl = @import("curl");
 const c = @cImport({
     @cInclude("time.h");
 });
@@ -42,13 +41,6 @@ pub const Cpu = struct {
         };
     }
 };
-
-test "cpu" {
-    var cpu_test = Cpu{};
-    const dev = cpu_test.toDevice();
-    try dev.refresh();
-    try testing.expect(cpu_test.section != null);
-}
 
 pub const Date = struct {
     format: [*c]const u8 = "%A %d/%m/%Y %H:%M:%S",
@@ -110,7 +102,7 @@ pub const Temperature = struct {
         self.section = .{
             .icon = self.icon,
             .name = self.name,
-            .refreshed_value = .{ .perc = try sys.thermal.getTemperatureFromZone(self.thermal_zone) },
+            .refreshed_value = .{ .degree = try sys.thermal.getTemperatureFromZone(self.thermal_zone) },
         };
 
         self.mutex.unlock();
@@ -266,7 +258,7 @@ pub const Network = struct {
         }
 
         var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-        defer _ = gpa.deinit();
+        defer if (gpa.deinit() != .ok) @panic("leak script");
         const allocator = gpa.allocator();
 
         if (std.net.tcpConnectToHost(allocator, "google.com", 443)) |_| {
@@ -375,23 +367,37 @@ pub const Weather = struct {
             std.log.err("Error running convert in Weather", .{});
         }
 
-        var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-        defer if (gpa.deinit() != .ok) @panic("leak curl");
-        const allocator = gpa.allocator();
+        var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+        defer arena.deinit();
+        const allocator = arena.allocator();
 
-        const easy = try curl.Easy.init(allocator, .{});
-        defer easy.deinit();
+        const url = try std.fmt.allocPrintZ(allocator, "wttr.in/{s}?format=%t", .{self.location});
 
-        const resp = try easy.get(try std.fmt.allocPrintZ(allocator, "wttr.in/{s}?format=%t", .{self.location}));
-        defer resp.deinit();
+        var child = std.process.Child.init(&.{ "curl", "-s", url }, allocator);
 
-        const value = if (resp.status_code == 200) resp.body.?.items[1..resp.body.?.items.len] else "-";
+        child.stdin_behavior = .Inherit;
+        child.stdout_behavior = .Pipe;
+        child.stderr_behavior = .Inherit;
+
+        try child.spawn();
 
         self.section = .{
             .icon = self.icon,
             .name = self.name,
-            .refreshed_value = .{ .str = value },
+            .refreshed_value = .{ .str = "-" },
         };
+
+        const output = try child.stdout.?.readToEndAlloc(allocator, 16);
+        defer allocator.free(output);
+
+        const term = try child.wait();
+
+        if (term.Exited != 0) {
+            std.log.err("Failed to fetch weather data: {}", .{term.Exited});
+            return;
+        }
+
+        self.section.?.refreshed_value.str = output[1..6];
 
         self.mutex.unlock();
         std.time.sleep(std.time.ns_per_ms * self.time);
@@ -425,7 +431,7 @@ pub const Script = struct {
         }
 
         var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-        defer if (gpa.deinit() != .ok) @panic("leak");
+        defer if (gpa.deinit() != .ok) @panic("leak script");
         const allocator = gpa.allocator();
 
         var child = std.process.Child.init(&.{ "/bin/sh", self.path }, std.heap.page_allocator);
@@ -482,3 +488,18 @@ pub const Device = struct {
         return self.refreshFn(self.ptr);
     }
 };
+
+test "cpu" {
+    var cpu_test = Cpu{};
+    try Cpu.refresh(@ptrCast(&cpu_test));
+    try std.testing.expect(cpu_test.section != null);
+    try std.testing.expectEqualStrings(@tagName(cpu_test.section.?.refreshed_value), "perc");
+
+    const device = cpu_test.toDevice();
+    const ptr_cast: *Cpu = @ptrCast(@alignCast(device.ptr));
+    try std.testing.expectEqual(@as(*Cpu, &cpu_test), ptr_cast);
+    try std.testing.expectEqual(@as(usize, 1000), device.time.*);
+    try std.testing.expectEqual(@as(*std.Thread.Mutex, &cpu_test.mutex), device.mutex);
+    try std.testing.expectEqual(@as(*?sec.Section, &cpu_test.section), device.section);
+    try std.testing.expectEqual(@as(fn (*anyopaque) anyerror!void, Cpu.refresh), device.refreshFn);
+}
