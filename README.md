@@ -4,6 +4,7 @@
 <img src="https://github.com/javiorfo/img/blob/master/xtatusbar/ztatusbar.png?raw=true" alt="ztatusbar" />
 
 ## Caveats
+- Zig version **0.13.0**
 - Dependencies: `xorg-xsetroot`, `curl`, `alsa`
 - This library has been developed on and for Linux following open source philosophy.
 
