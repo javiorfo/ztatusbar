@@ -1,17 +1,20 @@
 # ztatusbar
 *Configurable statusbar developed in Zig for Xorg server using xsetroot*
 
+<img src="https://github.com/javiorfo/img/blob/master/xtatusbar/ztatusbar.png?raw=true" alt="ztatusbar" />
+
 ## Caveats
 - Dependencies: `xorg-xsetroot`, `curl`, `alsa`
 - This library has been developed on and for Linux following open source philosophy.
 
 ## Installation
-- Downloading and compiling manually:
+- Downloading, compiling and installing manually:
 ```bash
 git clone https://github.com/javiorfo/ztatusbar
 cd ztatusbar
 sudo make clean install
 ```
+**NOTE:** variable OPTIMIZE could be pass as parameter to activate different Zig build modes (default is ReleaseFast).
 
 - From AUR Arch Linux:
 ```bash
@@ -69,11 +72,6 @@ zone = 1    # thermal zone which has the temperature in /sys/class/thermal_zone{
 
 ...
 ```
-
-## Screenshots
-
-<img src="https://github.com/javiorfo/img/blob/master/xtatusbar/ztatusbar.png?raw=true" alt="ztatusbar" />
-
 ---
 
 ### Donate

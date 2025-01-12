@@ -43,12 +43,13 @@ pub fn build(b: *std.Build) void {
     run_step.dependOn(&run_cmd.step);
 
     const exe_unit_tests = b.addTest(.{
-        .root_source_file = b.path("src/device.zig"),
+        .root_source_file = b.path("src/test.zig"),
         .target = target,
         .optimize = optimize,
         .link_libc = true,
     });
     exe_unit_tests.root_module.addImport("syslinfo", dep.module("syslinfo"));
+    exe_unit_tests.linkSystemLibrary("asound");
 
     const run_exe_unit_tests = b.addRunArtifact(exe_unit_tests);
 

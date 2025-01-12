@@ -2,20 +2,11 @@ const std = @import("std");
 const device = @import("device.zig");
 const initializer = @import("initializer.zig");
 
+const statusbar_refresh_time: u64 = 100;
+
 pub fn threadDevice(dev: *device.Device) !void {
     while (true) {
         dev.refresh() catch continue;
-    }
-}
-
-pub fn threadDevices(devices: []device.Device, time: u64) !void {
-    while (true) {
-        for (devices) |dev| {
-            dev.mutex.lock();
-            defer dev.mutex.unlock();
-            dev.refresh() catch continue;
-        }
-        std.time.sleep(std.time.ns_per_ms * time);
     }
 }
 
@@ -41,7 +32,7 @@ pub fn threadStatusBar(devices: *[]device.Device) !void {
 
             if (i == length - 1) {
                 final_str = result.toOwnedSlice() catch |err| {
-                    std.log.err("Error creating final string {}\n", .{err});
+                    std.log.err("Error creating final string {}", .{err});
                     return error.FinalStringCreationFailed;
                 };
             } else {
@@ -50,14 +41,15 @@ pub fn threadStatusBar(devices: *[]device.Device) !void {
         }
 
         callXsetroot(final_str) catch |err| {
-            std.log.err("Error calling system xsetroot {}\n", .{err});
+            std.log.err("Error calling system xsetroot {}", .{err});
         };
 
-        std.time.sleep(100 * std.time.ns_per_ms);
+        std.time.sleep(statusbar_refresh_time * std.time.ns_per_ms);
     }
 }
 
 pub fn callXsetroot(str: []const u8) !void {
+    std.log.debug("xsetroot string {s}", .{str});
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     defer arena.deinit();
     const allocator = arena.allocator();
@@ -71,12 +63,13 @@ pub fn callXsetroot(str: []const u8) !void {
     const term = try child.spawnAndWait();
 
     switch (term) {
-        .Stopped, .Signal, .Unknown => |err| std.log.err("Command failed: {}\n", .{err}),
+        .Stopped, .Signal, .Unknown => |err| std.log.err("Command failed: {}", .{err}),
         .Exited => return,
     }
 }
 
 pub fn callSimpleXsetroot(str: []const u8) !void {
+    std.log.debug("xsetroot string {s}", .{str});
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     defer arena.deinit();
     const allocator = arena.allocator();

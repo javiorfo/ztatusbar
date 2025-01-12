@@ -394,10 +394,9 @@ pub const Weather = struct {
 
         if (term.Exited != 0) {
             std.log.err("Failed to fetch weather data: {}", .{term.Exited});
-            return;
+        } else {
+            self.section.?.refreshed_value.str = output[1..6];
         }
-
-        self.section.?.refreshed_value.str = output[1..6];
 
         self.mutex.unlock();
         std.time.sleep(std.time.ns_per_ms * self.time);
@@ -502,4 +501,107 @@ test "cpu" {
     try std.testing.expectEqual(@as(*std.Thread.Mutex, &cpu_test.mutex), device.mutex);
     try std.testing.expectEqual(@as(*?sec.Section, &cpu_test.section), device.section);
     try std.testing.expectEqual(@as(fn (*anyopaque) anyerror!void, Cpu.refresh), device.refreshFn);
+}
+
+test "date" {
+    var date_test = Date{};
+    try Date.refresh(@ptrCast(&date_test));
+    try std.testing.expect(date_test.section != null);
+    try std.testing.expectEqualStrings(@tagName(date_test.section.?.refreshed_value), "str");
+
+    const device = date_test.toDevice();
+    const ptr_cast: *Date = @ptrCast(@alignCast(device.ptr));
+    try std.testing.expectEqual(@as(*Date, &date_test), ptr_cast);
+    try std.testing.expectEqual(@as(usize, 1000), device.time.*);
+    try std.testing.expectEqual(@as(*std.Thread.Mutex, &date_test.mutex), device.mutex);
+    try std.testing.expectEqual(@as(*?sec.Section, &date_test.section), device.section);
+    try std.testing.expectEqual(@as(fn (*anyopaque) anyerror!void, Date.refresh), device.refreshFn);
+}
+
+test "temperature" {
+    var temperature_test = Temperature{};
+    try Temperature.refresh(@ptrCast(&temperature_test));
+    try std.testing.expect(temperature_test.section != null);
+    try std.testing.expectEqualStrings(@tagName(temperature_test.section.?.refreshed_value), "degree");
+
+    const device = temperature_test.toDevice();
+    const ptr_cast: *Temperature = @ptrCast(@alignCast(device.ptr));
+    try std.testing.expectEqual(@as(*Temperature, &temperature_test), ptr_cast);
+    try std.testing.expectEqual(@as(usize, 1000), device.time.*);
+    try std.testing.expectEqual(@as(*std.Thread.Mutex, &temperature_test.mutex), device.mutex);
+    try std.testing.expectEqual(@as(*?sec.Section, &temperature_test.section), device.section);
+    try std.testing.expectEqual(@as(fn (*anyopaque) anyerror!void, Temperature.refresh), device.refreshFn);
+}
+
+test "memory" {
+    var mem_test = Memory{};
+    try Memory.refresh(@ptrCast(&mem_test));
+    try std.testing.expect(mem_test.section != null);
+    try std.testing.expectEqualStrings(@tagName(mem_test.section.?.refreshed_value), "perc");
+
+    const device = mem_test.toDevice();
+    const ptr_cast: *Memory = @ptrCast(@alignCast(device.ptr));
+    try std.testing.expectEqual(@as(*Memory, &mem_test), ptr_cast);
+    try std.testing.expectEqual(@as(usize, 1000), device.time.*);
+    try std.testing.expectEqual(@as(*std.Thread.Mutex, &mem_test.mutex), device.mutex);
+    try std.testing.expectEqual(@as(*?sec.Section, &mem_test.section), device.section);
+    try std.testing.expectEqual(@as(fn (*anyopaque) anyerror!void, Memory.refresh), device.refreshFn);
+}
+
+test "disk" {
+    var disk_test = Disk{};
+    try Disk.refresh(@ptrCast(&disk_test));
+    try std.testing.expect(disk_test.section != null);
+    try std.testing.expectEqualStrings(@tagName(disk_test.section.?.refreshed_value), "perc");
+
+    const device = disk_test.toDevice();
+    const ptr_cast: *Disk = @ptrCast(@alignCast(device.ptr));
+    try std.testing.expectEqual(@as(*Disk, &disk_test), ptr_cast);
+    try std.testing.expectEqual(@as(usize, 1000), device.time.*);
+    try std.testing.expectEqual(@as(*std.Thread.Mutex, &disk_test.mutex), device.mutex);
+    try std.testing.expectEqual(@as(*?sec.Section, &disk_test.section), device.section);
+    try std.testing.expectEqual(@as(fn (*anyopaque) anyerror!void, Disk.refresh), device.refreshFn);
+}
+
+test "volume" {
+    var vol_test = Volume{};
+    try Volume.refresh(@ptrCast(&vol_test));
+    try std.testing.expect(vol_test.section != null);
+    try std.testing.expectEqualStrings(@tagName(vol_test.section.?.refreshed_value), "perc");
+
+    const device = vol_test.toDevice();
+    const ptr_cast: *Volume = @ptrCast(@alignCast(device.ptr));
+    try std.testing.expectEqual(@as(*Volume, &vol_test), ptr_cast);
+    try std.testing.expectEqual(@as(usize, 100), device.time.*);
+    try std.testing.expectEqual(@as(*std.Thread.Mutex, &vol_test.mutex), device.mutex);
+    try std.testing.expectEqual(@as(*?sec.Section, &vol_test.section), device.section);
+    try std.testing.expectEqual(@as(fn (*anyopaque) anyerror!void, Volume.refresh), device.refreshFn);
+}
+
+test "network" {
+    var net_test = Network{ .time = 1000 };
+    try Volume.refresh(@ptrCast(&net_test));
+    try std.testing.expect(net_test.section != null);
+
+    const device = net_test.toDevice();
+    const ptr_cast: *Network = @ptrCast(@alignCast(device.ptr));
+    try std.testing.expectEqual(@as(*Network, &net_test), ptr_cast);
+    try std.testing.expectEqual(@as(usize, 1000), device.time.*);
+    try std.testing.expectEqual(@as(*std.Thread.Mutex, &net_test.mutex), device.mutex);
+    try std.testing.expectEqual(@as(*?sec.Section, &net_test.section), device.section);
+    try std.testing.expectEqual(@as(fn (*anyopaque) anyerror!void, Network.refresh), device.refreshFn);
+}
+
+test "weather" {
+    var weather_test = Weather{ .time = 5000 };
+    try Weather.refresh(@ptrCast(&weather_test));
+    try std.testing.expect(weather_test.section != null);
+
+    const device = weather_test.toDevice();
+    const ptr_cast: *Weather = @ptrCast(@alignCast(device.ptr));
+    try std.testing.expectEqual(@as(*Weather, &weather_test), ptr_cast);
+    try std.testing.expectEqual(@as(usize, 5000), device.time.*);
+    try std.testing.expectEqual(@as(*std.Thread.Mutex, &weather_test.mutex), device.mutex);
+    try std.testing.expectEqual(@as(*?sec.Section, &weather_test.section), device.section);
+    try std.testing.expectEqual(@as(fn (*anyopaque) anyerror!void, Weather.refresh), device.refreshFn);
 }
