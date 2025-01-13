@@ -258,10 +258,11 @@ pub const Network = struct {
         }
 
         var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-        defer if (gpa.deinit() != .ok) @panic("leak script");
+        defer if (gpa.deinit() != .ok) @panic("leak network");
         const allocator = gpa.allocator();
 
-        if (std.net.tcpConnectToHost(allocator, "google.com", 443)) |_| {
+        if (std.net.tcpConnectToHost(allocator, "google.com", 443)) |stream| {
+            defer stream.close();
             self.section = .{
                 .icon = self.icon,
                 .name = "",

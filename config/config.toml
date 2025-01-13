@@ -2,23 +2,23 @@
 separator = "|"
 
 [cpu]
-time = 1000
+time = 2000
 name = "CPU"
 icon = " "
 
 [memory]
-time = 1000
+time = 2000
 name = "RAM"
 icon = " "
 
 [temperature]
-time = 1000
+time = 2000
 name = "TEMP"
 icon = "󰏈 " 
 zone = 1
 
 [disk]
-time = 2000
+time = 5000
 name = "DISK"
 icon = "󰋊 "
 unit = "/"
@@ -30,13 +30,13 @@ icon = " "
 icon_muted = "󰖁 " 
 
 [network]
-time = 5000
+time = 7000
 name = "NET"
 icon = "󰀂 " 
 icon_down = "󰯡 " 
 
 [battery]
-time = 5000
+time = 7000
 name = "BAT"
 icon_full = "󰁹" 
 icon_medium = "󰁿" 
@@ -44,7 +44,7 @@ icon_low = "󰁺"
 path = "/sys/class/power_supply/BAT0/uevent"
 
 [script]
-time = 1000
+time = 2000
 name = "SCR" # Use a suitable nam
 icon = "󰯁 "  # Use a suitable icon
 path = "/path/to/script.sh"
