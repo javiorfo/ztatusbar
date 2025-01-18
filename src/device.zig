@@ -9,7 +9,7 @@ const testing = std.testing;
 pub const Cpu = struct {
     name: []const u8 = "CPU",
     icon: []const u8 = " ",
-    time: usize = 1000,
+    time: usize = 1_000,
     mutex: std.Thread.Mutex = .{},
     section: ?sec.Section = null,
 
@@ -45,7 +45,7 @@ pub const Cpu = struct {
 pub const Date = struct {
     format: [*c]const u8 = "%A %d/%m/%Y %H:%M:%S",
     icon: []const u8 = " ",
-    time: usize = 1000,
+    time: usize = 1_000,
     mutex: std.Thread.Mutex = .{},
     section: ?sec.Section = null,
 
@@ -87,7 +87,7 @@ pub const Temperature = struct {
     name: []const u8 = "TEMP",
     icon: []const u8 = "󰏈 ",
     thermal_zone: sys.thermal.ZONE = .zero,
-    time: usize = 1000,
+    time: usize = 1_000,
     mutex: std.Thread.Mutex = .{},
     section: ?sec.Section = null,
 
@@ -123,7 +123,7 @@ pub const Temperature = struct {
 pub const Memory = struct {
     name: []const u8 = "RAM",
     icon: []const u8 = " ",
-    time: usize = 1000,
+    time: usize = 1_000,
     mutex: std.Thread.Mutex = .{},
     section: ?sec.Section = null,
 
@@ -161,7 +161,7 @@ pub const Disk = struct {
     name: []const u8 = "DISK",
     icon: []const u8 = "󰋊 ",
     unit: [:0]const u8 = "/",
-    time: usize = 1000,
+    time: usize = 1_000,
     mutex: std.Thread.Mutex = .{},
     section: ?sec.Section = null,
 
@@ -245,9 +245,11 @@ pub const Network = struct {
     name: []const u8 = "NET",
     icon: []const u8 = "󰀂 ",
     icon_down: []const u8 = "󰯡 ",
-    time: usize = 5000,
+    time: usize = 5_000,
     mutex: std.Thread.Mutex = .{},
     section: ?sec.Section = null,
+
+    const posix = std.posix;
 
     pub fn refresh(ptr: *anyopaque) anyerror!void {
         const self: *Network = @ptrCast(@alignCast(ptr));
@@ -257,12 +259,20 @@ pub const Network = struct {
             std.log.err("Error running convert in Network", .{});
         }
 
-        var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-        defer if (gpa.deinit() != .ok) @panic("leak network");
-        const allocator = gpa.allocator();
+        // Google's DNS server on port 53
+        const address = try std.net.Address.parseIp("8.8.8.8", 53);
+        const tpe: u32 = posix.SOCK.STREAM;
+        const protocol = posix.IPPROTO.TCP;
 
-        if (std.net.tcpConnectToHost(allocator, "google.com", 443)) |stream| {
-            defer stream.close();
+        const socket = try posix.socket(address.any.family, tpe, protocol);
+        defer posix.close(socket);
+
+        // Timeout 1 seconds max
+        const timeout = posix.timeval{ .tv_sec = 1, .tv_usec = 0 };
+        try posix.setsockopt(socket, posix.SOL.SOCKET, posix.SO.RCVTIMEO, &std.mem.toBytes(timeout));
+        try posix.setsockopt(socket, posix.SOL.SOCKET, posix.SO.SNDTIMEO, &std.mem.toBytes(timeout));
+
+        if (posix.connect(socket, &address.any, address.getOsSockLen())) |_| {
             self.section = .{
                 .icon = self.icon,
                 .name = "",
@@ -297,7 +307,7 @@ pub const Battery = struct {
     icon_half: []const u8 = "󰁿",
     icon_low: []const u8 = "󰁺",
     path: []const u8,
-    time: usize = 10000,
+    time: usize = 10_000,
     mutex: std.Thread.Mutex = .{},
     section: ?sec.Section = null,
 
@@ -356,7 +366,7 @@ pub const Weather = struct {
     name: []const u8 = "WEA",
     icon: []const u8 = " ",
     location: []const u8 = "Buenos+Aires",
-    time: usize = 1800000,
+    time: usize = 1_800_000,
     mutex: std.Thread.Mutex = .{},
     section: ?sec.Section = null,
 
@@ -418,7 +428,7 @@ pub const Script = struct {
     name: []const u8,
     icon: []const u8,
     path: []const u8,
-    time: usize = 1000,
+    time: usize = 1_000,
     mutex: std.Thread.Mutex = .{},
     section: ?sec.Section = null,
 
@@ -498,7 +508,7 @@ test "cpu" {
     const device = cpu_test.toDevice();
     const ptr_cast: *Cpu = @ptrCast(@alignCast(device.ptr));
     try std.testing.expectEqual(@as(*Cpu, &cpu_test), ptr_cast);
-    try std.testing.expectEqual(@as(usize, 1000), device.time.*);
+    try std.testing.expectEqual(@as(usize, 1_000), device.time.*);
     try std.testing.expectEqual(@as(*std.Thread.Mutex, &cpu_test.mutex), device.mutex);
     try std.testing.expectEqual(@as(*?sec.Section, &cpu_test.section), device.section);
     try std.testing.expectEqual(@as(fn (*anyopaque) anyerror!void, Cpu.refresh), device.refreshFn);
@@ -513,7 +523,7 @@ test "date" {
     const device = date_test.toDevice();
     const ptr_cast: *Date = @ptrCast(@alignCast(device.ptr));
     try std.testing.expectEqual(@as(*Date, &date_test), ptr_cast);
-    try std.testing.expectEqual(@as(usize, 1000), device.time.*);
+    try std.testing.expectEqual(@as(usize, 1_000), device.time.*);
     try std.testing.expectEqual(@as(*std.Thread.Mutex, &date_test.mutex), device.mutex);
     try std.testing.expectEqual(@as(*?sec.Section, &date_test.section), device.section);
     try std.testing.expectEqual(@as(fn (*anyopaque) anyerror!void, Date.refresh), device.refreshFn);
@@ -528,7 +538,7 @@ test "temperature" {
     const device = temperature_test.toDevice();
     const ptr_cast: *Temperature = @ptrCast(@alignCast(device.ptr));
     try std.testing.expectEqual(@as(*Temperature, &temperature_test), ptr_cast);
-    try std.testing.expectEqual(@as(usize, 1000), device.time.*);
+    try std.testing.expectEqual(@as(usize, 1_000), device.time.*);
     try std.testing.expectEqual(@as(*std.Thread.Mutex, &temperature_test.mutex), device.mutex);
     try std.testing.expectEqual(@as(*?sec.Section, &temperature_test.section), device.section);
     try std.testing.expectEqual(@as(fn (*anyopaque) anyerror!void, Temperature.refresh), device.refreshFn);
@@ -543,7 +553,7 @@ test "memory" {
     const device = mem_test.toDevice();
     const ptr_cast: *Memory = @ptrCast(@alignCast(device.ptr));
     try std.testing.expectEqual(@as(*Memory, &mem_test), ptr_cast);
-    try std.testing.expectEqual(@as(usize, 1000), device.time.*);
+    try std.testing.expectEqual(@as(usize, 1_000), device.time.*);
     try std.testing.expectEqual(@as(*std.Thread.Mutex, &mem_test.mutex), device.mutex);
     try std.testing.expectEqual(@as(*?sec.Section, &mem_test.section), device.section);
     try std.testing.expectEqual(@as(fn (*anyopaque) anyerror!void, Memory.refresh), device.refreshFn);
@@ -558,7 +568,7 @@ test "disk" {
     const device = disk_test.toDevice();
     const ptr_cast: *Disk = @ptrCast(@alignCast(device.ptr));
     try std.testing.expectEqual(@as(*Disk, &disk_test), ptr_cast);
-    try std.testing.expectEqual(@as(usize, 1000), device.time.*);
+    try std.testing.expectEqual(@as(usize, 1_000), device.time.*);
     try std.testing.expectEqual(@as(*std.Thread.Mutex, &disk_test.mutex), device.mutex);
     try std.testing.expectEqual(@as(*?sec.Section, &disk_test.section), device.section);
     try std.testing.expectEqual(@as(fn (*anyopaque) anyerror!void, Disk.refresh), device.refreshFn);
@@ -587,7 +597,7 @@ test "network" {
     const device = net_test.toDevice();
     const ptr_cast: *Network = @ptrCast(@alignCast(device.ptr));
     try std.testing.expectEqual(@as(*Network, &net_test), ptr_cast);
-    try std.testing.expectEqual(@as(usize, 1000), device.time.*);
+    try std.testing.expectEqual(@as(usize, 1_000), device.time.*);
     try std.testing.expectEqual(@as(*std.Thread.Mutex, &net_test.mutex), device.mutex);
     try std.testing.expectEqual(@as(*?sec.Section, &net_test.section), device.section);
     try std.testing.expectEqual(@as(fn (*anyopaque) anyerror!void, Network.refresh), device.refreshFn);
@@ -601,7 +611,7 @@ test "weather" {
     const device = weather_test.toDevice();
     const ptr_cast: *Weather = @ptrCast(@alignCast(device.ptr));
     try std.testing.expectEqual(@as(*Weather, &weather_test), ptr_cast);
-    try std.testing.expectEqual(@as(usize, 5000), device.time.*);
+    try std.testing.expectEqual(@as(usize, 5_000), device.time.*);
     try std.testing.expectEqual(@as(*std.Thread.Mutex, &weather_test.mutex), device.mutex);
     try std.testing.expectEqual(@as(*?sec.Section, &weather_test.section), device.section);
     try std.testing.expectEqual(@as(fn (*anyopaque) anyerror!void, Weather.refresh), device.refreshFn);

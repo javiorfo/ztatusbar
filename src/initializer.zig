@@ -52,7 +52,7 @@ pub fn initialize() !void {
             var cpu = device.Cpu{
                 .icon = item.getString("icon") orelse " ",
                 .name = item.getString("name") orelse "CPU",
-                .time = @as(u64, @intCast(item.getInteger("time") orelse 1000)),
+                .time = @as(u64, @intCast(item.getInteger("time") orelse 1_000)),
             };
             try devices_list.append(cpu.toDevice());
             size += 1;
@@ -62,7 +62,7 @@ pub fn initialize() !void {
             var temp = device.Temperature{
                 .icon = item.getString("icon") orelse "󰏈 ",
                 .name = item.getString("name") orelse "TEMP",
-                .time = @as(u64, @intCast(item.getInteger("time") orelse 1000)),
+                .time = @as(u64, @intCast(item.getInteger("time") orelse 1_000)),
                 .thermal_zone = sys.thermal.ZONE.getEnum(@as(u4, @intCast(item.getInteger("zone") orelse 0))),
             };
             try devices_list.append(temp.toDevice());
@@ -73,7 +73,7 @@ pub fn initialize() !void {
             var mem = device.Memory{
                 .icon = item.getString("icon") orelse " ",
                 .name = item.getString("name") orelse "RAM",
-                .time = @as(u64, @intCast(item.getInteger("time") orelse 1000)),
+                .time = @as(u64, @intCast(item.getInteger("time") orelse 1_000)),
             };
             try devices_list.append(mem.toDevice());
             size += 1;
@@ -84,7 +84,7 @@ pub fn initialize() !void {
                 .icon = item.getString("icon") orelse "󰋊 ",
                 .name = item.getString("name") orelse "DISK",
                 .unit = try std.fmt.allocPrintZ(allocator, "{s}", .{item.getString("unit") orelse "/"}),
-                .time = @as(u64, @intCast(item.getInteger("time") orelse 2000)),
+                .time = @as(u64, @intCast(item.getInteger("time") orelse 2_000)),
             };
             try devices_list.append(disk.toDevice());
             size += 1;
@@ -106,7 +106,7 @@ pub fn initialize() !void {
                 .icon = item.getString("icon") orelse "󰀂 ",
                 .icon_down = item.getString("icon_down") orelse "󰯡 ",
                 .name = item.getString("name") orelse "NET",
-                .time = @as(u64, @intCast(item.getInteger("time") orelse 5000)),
+                .time = @as(u64, @intCast(item.getInteger("time") orelse 5_000)),
             };
             try devices_list.append(net.toDevice());
             size += 1;
@@ -119,7 +119,7 @@ pub fn initialize() !void {
                 .icon_low = item.getString("icon_low") orelse "󰁺",
                 .name = item.getString("name") orelse "BAT",
                 .path = item.getString("path") orelse return error.PowerSupplyFileMissing,
-                .time = @as(u64, @intCast(item.getInteger("time") orelse 10000)),
+                .time = @as(u64, @intCast(item.getInteger("time") orelse 10_000)),
             };
             try devices_list.append(bat.toDevice());
             size += 1;
@@ -130,7 +130,7 @@ pub fn initialize() !void {
                 .icon = item.getString("icon") orelse " ",
                 .location = item.getString("location") orelse "Buenos+Aires",
                 .name = item.getString("name") orelse "WEA",
-                .time = @as(u64, @intCast(item.getInteger("time") orelse 1800000)),
+                .time = @as(u64, @intCast(item.getInteger("time") orelse 1_800_000)),
             };
             try devices_list.append(wea.toDevice());
             size += 1;
@@ -141,7 +141,7 @@ pub fn initialize() !void {
                 .icon = item.getString("icon") orelse return error.ScriptIconRequired,
                 .name = item.getString("name") orelse return error.ScriptNameRequired,
                 .path = item.getString("path") orelse return error.ScriptPathRequired,
-                .time = @as(u64, @intCast(item.getInteger("time") orelse 1000)),
+                .time = @as(u64, @intCast(item.getInteger("time") orelse 1_000)),
             };
             try devices_list.append(script.toDevice());
             size += 1;
@@ -151,7 +151,7 @@ pub fn initialize() !void {
             var date = device.Date{
                 .icon = item.getString("icon") orelse " ",
                 .format = try std.fmt.allocPrintZ(allocator, "{s}", .{item.getString("format") orelse "%A %d/%m/%Y %H:%M:%S"}),
-                .time = @as(u64, @intCast(item.getInteger("time") orelse 1000)),
+                .time = @as(u64, @intCast(item.getInteger("time") orelse 1_000)),
             };
             try devices_list.append(date.toDevice());
             size += 1;
