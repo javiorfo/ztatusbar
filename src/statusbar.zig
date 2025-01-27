@@ -49,7 +49,6 @@ pub fn threadStatusBar(devices: *[]device.Device) !void {
 }
 
 pub fn callXsetroot(str: []const u8) !void {
-    std.log.debug("xsetroot string {s}", .{str});
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     defer arena.deinit();
     const allocator = arena.allocator();
