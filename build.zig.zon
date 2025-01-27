@@ -5,7 +5,7 @@
     .dependencies = .{
         .syslinfo = .{
             .url = "https://github.com/javiorfo/zig-syslinfo/archive/refs/heads/master.tar.gz",
-            .hash = "122079ae163b541b3eb8f9fa07669435930e55a6474eb811b97f8dcb4d5747403674",
+            .hash = "1220064e794deb6f23810a26f835312c04f1160abc3ed5659ef7474795af918a5a46",
         },
         .tomlz = .{
             .url = "https://github.com/mattyhall/tomlz/archive/refs/heads/main.tar.gz",
