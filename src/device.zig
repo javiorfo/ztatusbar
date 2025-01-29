@@ -19,6 +19,7 @@ pub const Cpu = struct {
         errdefer {
             self.mutex.unlock();
             std.log.err("Error running convert in Cpu", .{});
+            std.time.sleep(std.time.ns_per_ms * self.time);
         }
 
         self.section = .{
@@ -55,6 +56,7 @@ pub const Date = struct {
         errdefer {
             self.mutex.unlock();
             std.log.err("Error running convert in Date", .{});
+            std.time.sleep(std.time.ns_per_ms * self.time);
         }
 
         var now: c.time_t = c.time(null);
@@ -97,6 +99,7 @@ pub const Temperature = struct {
         errdefer {
             self.mutex.unlock();
             std.log.err("Error running convert in Temperature", .{});
+            std.time.sleep(std.time.ns_per_ms * self.time);
         }
 
         self.section = .{
@@ -133,6 +136,7 @@ pub const Memory = struct {
         errdefer {
             self.mutex.unlock();
             std.log.err("Error running convert in Memory", .{});
+            std.time.sleep(std.time.ns_per_ms * self.time);
         }
 
         const mem_usage = try sys.memory.usage();
@@ -171,6 +175,7 @@ pub const Disk = struct {
         errdefer {
             self.mutex.unlock();
             std.log.err("Error running convert in Disk", .{});
+            std.time.sleep(std.time.ns_per_ms * self.time);
         }
 
         const disk_usage = try sys.disk.usage(self.unit);
@@ -209,6 +214,7 @@ pub const Volume = struct {
         errdefer {
             self.mutex.unlock();
             std.log.err("Error running convert in Volume", .{});
+            std.time.sleep(std.time.ns_per_ms * self.time);
         }
 
         const volume_state = try sys.volume.state(.{});
@@ -257,6 +263,7 @@ pub const Network = struct {
         errdefer {
             self.mutex.unlock();
             std.log.err("Error running convert in Network", .{});
+            std.time.sleep(std.time.ns_per_ms * self.time);
         }
 
         // Google's DNS server on port 53
@@ -319,6 +326,7 @@ pub const Battery = struct {
         errdefer {
             self.mutex.unlock();
             std.log.err("Error running convert in Battery", .{});
+            std.time.sleep(std.time.ns_per_ms * self.time);
         }
 
         var file = try std.fs.openFileAbsolute(self.path, .{});
@@ -376,6 +384,7 @@ pub const Weather = struct {
         errdefer {
             self.mutex.unlock();
             std.log.err("Error running convert in Weather", .{});
+            std.time.sleep(std.time.ns_per_ms * self.time);
         }
 
         var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
@@ -438,6 +447,7 @@ pub const Script = struct {
         errdefer {
             self.mutex.unlock();
             std.log.err("Error running convert in Script", .{});
+            std.time.sleep(std.time.ns_per_ms * self.time);
         }
 
         var gpa = std.heap.GeneralPurposeAllocator(.{}){};
